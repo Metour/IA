@@ -9,7 +9,8 @@ public class AI : MonoBehaviour
     enum State
     {
         Patrolling,
-        Chasing
+        Chasing,
+        Traveling
     }
 
     State currentState;
@@ -23,6 +24,9 @@ public class AI : MonoBehaviour
 
     [SerializeField]
     float visionRange;
+
+    [SerializeField]
+    float patrolRange = 10f;
     
     
     void Awake()
@@ -52,19 +56,69 @@ public class AI : MonoBehaviour
                 Chase();
             break;
 
+            case State.Traveling:
+                Travel();
+            break;
+
             default:
                 Chase();
             break;
         }
     }
 
-    void Patrol()
+    //Punto Aleatorio (Entre los puntos que hemos definido)
+    /*void Patrol()
     {
         agent.destination = destinationPoints[destinationIndex].position;
 
         if(Vector3.Distance(transform.position, destinationPoints[destinationIndex].position) < 1)
         {
             destinationIndex = Random.Range(0, destinationPoints.Length);
+        }
+
+        if(Vector3.Distance(transform.position, player.position) < visionRange)
+        {
+            currentState = State.Chasing;
+        }
+    }*/
+
+    //Punto Aleatorio (Completamente Aleatorio)
+    void Patrol()
+    {
+
+        Vector3 randomPosition;
+        if (RandomPoint(transform.position, patrolRange, out randomPosition))
+        {
+            agent.destination = randomPosition;
+        }
+        
+        if(Vector3.Distance(transform.position, player.position) < visionRange)
+        {
+            currentState = State.Chasing;
+        }
+
+        currentState = State.Traveling;
+    }
+
+    bool RandomPoint(Vector3 center, float range, out Vector3 point)
+    {
+        Vector3 randomPoint = center + Random.insideUnitSphere * range;
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(randomPoint, out hit, 4, NavMesh.AllAreas))
+        {
+            point = hit.position;
+            return true;
+        }
+
+        point = Vector3.zero;
+        return false;
+    }
+
+    void Travel()
+    {
+        if(agent.remainingDistance <= 0.2)
+        {
+            currentState = State.Patrolling;
         }
 
         if(Vector3.Distance(transform.position, player.position) < visionRange)
