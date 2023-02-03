@@ -26,7 +26,17 @@ public class AI : MonoBehaviour
     float visionRange;
 
     [SerializeField]
+    [Range(0, 360)]
+    float visionAngle;
+
+    [SerializeField]
+    LayerMask obstaclesMask;
+
+    [SerializeField]
     float patrolRange = 10f;
+
+    [SerializeField]
+    Transform patrolZone;
     
     
     void Awake()
@@ -85,18 +95,18 @@ public class AI : MonoBehaviour
     //Punto Aleatorio (Completamente Aleatorio)
     void Patrol()
     {
-
         Vector3 randomPosition;
-        if (RandomPoint(transform.position, patrolRange, out randomPosition))
+        if (RandomPoint(patrolZone.position, patrolRange, out randomPosition))
         {
             agent.destination = randomPosition;
+            Debug.DrawRay(randomPosition, Vector3.up * 5, Color.blue, 5f);
         }
-        
-        if(Vector3.Distance(transform.position, player.position) < visionRange)
+
+        if(FindTarget())
         {
             currentState = State.Chasing;
         }
-
+        
         currentState = State.Traveling;
     }
 
@@ -121,7 +131,7 @@ public class AI : MonoBehaviour
             currentState = State.Patrolling;
         }
 
-        if(Vector3.Distance(transform.position, player.position) < visionRange)
+        if(FindTarget())
         {
             currentState = State.Chasing;
         }
@@ -131,10 +141,28 @@ public class AI : MonoBehaviour
     {
         agent.destination = player.position;
 
-        if(Vector3.Distance(transform.position, player.position) > visionRange)
+        if(FindTarget())
         {
             currentState = State.Patrolling;
         }
+    }
+
+    bool FindTarget()
+    {
+        if(Vector3.Distance(transform.position, player.position) < visionRange)
+        {
+            Vector3 directionToTarget = (player.position - transform.position).normalized;
+            if(Vector3.Angle(transform.forward, directionToTarget) < visionAngle / 2)
+            {
+                float distanceToTarget = Vector3.Distance(transform.position, player.position);
+                if(!Physics.Raycast(transform.position, directionToTarget, distanceToTarget, obstaclesMask))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     void OnDrawGizmos()
@@ -147,5 +175,8 @@ public class AI : MonoBehaviour
 
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, visionRange);
+
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(patrolZone.position, patrolRange);
     }
 }
